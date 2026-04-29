@@ -76,6 +76,8 @@ def main():
     show_start_screen(screen, font)
 
     score = 0
+    lives = LIVES_START
+    next_bonus_at = LIVES_BONUS_STEP
 
 	# Initialise the Clock and dt (delta time)
     clock = pygame.time.Clock()
@@ -110,22 +112,37 @@ def main():
 
         for asteroid in asteroids:
             if asteroid.collides_with(player):
+                lives -= 1
                 log_event("player_hit")
-                print("Game over!")
 
-                if is_high_score(score):
-                    name = get_player_name(screen, font)
-                    current_scores = load_high_scores()
-                    current_scores.append({"name": name, "score": score})
-                    save_high_scores(current_scores)
+                if lives > 0:
+                    # Reset player to center and clear nearby asteroids if you want
+                    player.position = pygame.Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+                    player.velocity = pygame.Vector2(0, 0)
+                    # Optional: kill current asteroids to give player a breather
+                    for a in asteroids:
+                        a.kill()
+                else:
+                    if is_high_score(score):
+                        name = get_player_name(screen, font)
+                        current_scores = load_high_scores()
+                        current_scores.append({"name": name, "score": score})
+                        save_high_scores(current_scores)
+                        print("Game over!")
+                    sys.exit()
 
-                sys.exit()
             for shot in shots:
                 if asteroid.collides_with(shot):
                     log_event("asteroid_shot")
                     points_earned = asteroid.split()
                     score += points_earned
                     shot.kill()
+                    
+                    # Check for bonus life
+                    if score >= next_bonus_at:
+                        lives += 1
+                        next_bonus_at += LIVES_BONUS_STEP
+                        log_event("bonus_life_earned")
 
         screen.fill("black")
         # Draw the player to the screen
@@ -134,6 +151,18 @@ def main():
         font = pygame.font.SysFont("monospace", 35)
         score_surface = font.render(f"Score: {score}", True, (255, 255, 255))
         screen.blit(score_surface, (10, 10))
+
+        # Draw ships for lives in the opposite corner
+        for i in range(lives):
+            # Calculate position starting from right side moving left
+            x = SCREEN_WIDTH - 30 - (i * 35)
+            y = 30
+            # Draw a small simplified triangle for the ship
+            pygame.draw.polygon(screen, "white", [
+                (x, y - 15),     # Top
+                (x - 10, y + 10), # Bottom Left
+                (x + 10, y + 10)  # Bottom Right
+            ], 2)
 
         for obj in drawable:
             obj.draw(screen)
