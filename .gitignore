@@ -11,3 +11,5 @@ wheels/
 
 #Logging files
 game_state.jsonl
+
+scores.json
